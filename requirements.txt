@@ -1,0 +1,33 @@
+# Fire Detection Service Requirements
+Flask>=2.2.0
+requests>=2.32.2
+numpy>=1.23.5
+opencv-python>=4.1.1
+torch>=1.8.0  # see https://pytorch.org/get-started/locally (recommended)
+torchvision>=0.9.0
+base64io>=1.0.3
+pillow>=10.3.0
+pyyaml>=5.3.1
+
+# YOLOv5 Requirements
+gitpython>=3.1.30
+matplotlib>=3.3
+psutil  # system resources
+scipy>=1.4.1
+thop>=0.1.1  # FLOPs computation
+tqdm>=4.66.3
+ultralytics>=8.2.34  # https://ultralytics.com
+
+# Logging & Utilities
+python-dotenv>=0.21.0  # For environment variable management
+gunicorn>=20.1.0  # For production deployment
+
+# Optional - uncomment if needed
+# tensorboard>=2.4.1
+# pandas>=1.1.4
+# seaborn>=0.11.0
+
+# Extras for development
+pytest>=7.3.1  # For testing
+flake8>=6.0.0  # For code quality
+black>=23.3.0  # For code formatting

@@ -1,95 +1,207 @@
-<h1 align="center"><span>YOLOv5/YOLOv9 for Fire Detection</span></h1>
+# Fire Detection Microservice Documentation
 
-Fire detection task aims to identify fire or flame in a video and put a bounding box around it. This repo includes a demo on how to build a fire detector using YOLOv5/YOLOv9. 
+## Overview
 
-<p align="center">
-  <img src="results/result.gif" />
-</p>
+The Fire Detection Microservice is a Flask-based web service that uses a YOLOv5 model to detect fires in images. The service accepts base64-encoded images and returns detection results (bounding boxes, confidence scores, and class IDs). It's designed for efficient batch processing of images using a queue-based architecture and multiple worker threads.
 
-## 🛠️ Installation
-1. Clone this repo 
-``` shell
-# Clone
-git clone https://github.com/spacewalk01/yolov5-fire-detection.git
-cd Yolov5-Fire-Detection
+## Features
+
+- **Real-time Fire Detection**: Detect fires in images using YOLOv5 custom model
+- **Efficient Batch Processing**: Process multiple images in batches for improved throughput
+- **Queue-based Architecture**: Handle multiple concurrent requests with a queue system
+- **GPU Acceleration**: Optional GPU support for faster inference
+- **Health Monitoring**: Health check endpoint for monitoring service status
+- **Configurable Parameters**: Adjust performance parameters through environment variables
+
+## API Endpoints
+
+### 1. Detect Fires (`POST /detect`)
+
+Detects fires in an image.
+
+**Request:**
+
+```json
+{
+  "frame": "base64_encoded_image_string"
+}
 ```
 
-2. Install [YOLOv5](https://github.com/ultralytics/yolov5). 
-``` shell
-git clone https://github.com/ultralytics/yolov5.git 
-cd yolov5
-pip install -r requirements.txt
+**Response:**
+
+```json
+{
+  "detections": [
+    {
+      "bbox": [x1, y1, x2, y2],
+      "confidence": 0.95,
+      "class_id": 0
+    }
+  ],
+  "timestamp": 1712076422.34567
+}
 ```
 
-3. Or install [YOLOv9](https://github.com/WongKinYiu/yolov9.git)
-``` shell
-git clone https://github.com/WongKinYiu/yolov9.git
-cd yolov9
-pip install -r requirements.txt
+**Error Responses:**
+
+- `400 Bad Request`: Missing or invalid image data
+- `408 Request Timeout`: Processing took too long
+- `500 Internal Server Error`: Error during processing
+- `503 Service Overloaded`: Queue is full
+
+### 2. Health Check (`GET /health`)
+
+Returns the current status of the service.
+
+**Response:**
+
+```json
+{
+  "status": "fire detection service is running",
+  "device": "cpu",
+  "queue_usage": "0/32",
+  "workers": 4,
+  "batch_size": 4,
+  "pending_responses": 0
+}
 ```
 
-## 🏋️ Training
-I set up ```train.ipynb``` script for training the model from scratch. To train the model, download [Fire-Dataset](https://www.kaggle.com/datasets/atulyakumar98/fire-and-gun-dataset) and put it in ```datasets``` folder. I filtered out images and annotations that contain fire and guns as well as images with low resolution, and then changed fire annotation's label in annotation files.
+### 3. Configuration (`GET /config`)
 
-- YOLOv5
-```
-python train.py --img 640 --batch 16 --epochs 10 --data ../fire.yaml --weights yolov5s.pt --workers 0
-```
+Returns the current service configuration.
 
-- YOLOv9
-```
-python train_dual.py --workers 4 --device 0 --batch 16 --data ../fire.yaml --img 640 --cfg models/detect/yolov9-c.yaml --weights '' --name yolov9-c --hyp hyp.scratch-high.yaml --min-items 0 --epochs 50 --close-mosaic 15
-```
+**Response:**
 
-## 🌱 Inference
-
-- YOLOv5
-  
-If you train your own model, use the following command for detection:
-``` shell
-python detect.py --source ../input.mp4 --weights runs/train/exp/weights/best.pt --conf 0.2
-```
-Or you can use the pretrained model located in ```models``` folder for detection as follows:
-``` shell
-python detect.py --source ../input.mp4 --weights ../models/yolov5s_best.pt --conf 0.2
+```json
+{
+  "MODEL_PATH": "models/yolov5s_best.pt",
+  "MAX_WORKERS": 4,
+  "BATCH_SIZE": 4,
+  "QUEUE_SIZE": 32,
+  "PORT": 5000,
+  "HOST": "0.0.0.0",
+  "DEBUG": false,
+  "LOG_LEVEL": "INFO",
+  "CONFIDENCE_THRESHOLD": 0.25,
+  "USE_GPU": "auto"
+}
 ```
 
-- YOLOv9
+## Configuration
 
-``` shell
-python detect.py --weights runs/train/yolov9-c2/weights/best.pt --source ../input.mp4
+The service can be configured using environment variables:
+
+| Variable               | Description                            | Default                  |
+| ---------------------- | -------------------------------------- | ------------------------ |
+| `MODEL_PATH`           | Path to the YOLOv5 model file          | `models/yolov5s_best.pt` |
+| `MAX_WORKERS`          | Number of worker threads               | `4`                      |
+| `BATCH_SIZE`           | Number of images to process in a batch | `4`                      |
+| `QUEUE_SIZE`           | Maximum size of the request queue      | `32`                     |
+| `PORT`                 | Server port                            | `5000`                   |
+| `HOST`                 | Server host                            | `0.0.0.0`                |
+| `DEBUG`                | Enable Flask debug mode                | `false`                  |
+| `LOG_LEVEL`            | Logging level                          | `INFO`                   |
+| `CONFIDENCE_THRESHOLD` | Minimum confidence for detections      | `0.25`                   |
+| `USE_GPU`              | GPU usage: "true", "false", or "auto"  | `auto`                   |
+
+## Installation and Setup
+
+### Prerequisites
+
+- Python 3.8+
+- PyTorch
+- CUDA (optional, for GPU acceleration)
+- YOLOv5 dependencies
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/yourusername/fire-detection.git
+   cd fire-detection
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Ensure the YOLOv5 model is in the specified location (default: `models/yolov5s_best.pt`).
+
+### Running the Service
+
+Start the service with default parameters:
+
+```bash
+python fire_detection_service.py
 ```
 
-You can download the pretrained yolov9-c.pt model from [google drive](https://drive.google.com/file/d/1nV5C3dbc_Q3CoczHaERTojr78-SFPdMI/view?usp=sharing) for fire detection. Note that this model was trained on the fire dataset for 50 epochs. Refer to [link](https://github.com/WongKinYiu/yolov9/issues/162) to fix for detect.py runtime error when running yolov9.
+With custom configuration:
 
-## ⏱️ Results
-The following charts were produced after training YOLOv5s with input size 640x640 on the fire dataset for 10 epochs.
-
-| P Curve | PR Curve | R Curve |
-| :-: | :-: | :-: |
-| ![](results/P_curve.png) | ![](results/PR_curve.png) | ![](results/R_curve.png) |
-
-#### Prediction Results
-The fire detection results were fairly good even though the model was trained only for a few epochs. However, I observed that the trained model tends to predict red emergency light on top of police car as fire. It might be due to the fact that the training dataset contains only a few hundreds of negative samples. We may fix such problem and further improve the performance of the model by adding images with non-labeled fire objects as negative samples. The [authors](https://github.com/ultralytics/yolov5/wiki/Tips-for-Best-Training-Results) who created YOLOv5 recommend using about 0-10% background images to help reduce false positives. 
-
-| Ground Truth | Prediction | 
-| :-: | :-: |
-| ![](results/val_batch2_labels_1.jpg) | ![](results/val_batch2_pred_1.jpg) |
-| ![](results/val_batch2_labels_2.jpg) | ![](results/val_batch2_pred_2.jpg) | 
-
-#### Feature Visualization
-It is desirable for AI engineers to know what happens under the hood of object detection models. Visualizing features in deep learning models can help us a little bit understand how they make predictions. In YOLOv5, we can visualize features using ```--visualize``` argument as follows:
-
-```
-python detect.py --weights runs/train/exp/weights/best.pt --img 640 --conf 0.2 --source ../datasets/fire/val/images/0.jpg --visualize
+```bash
+MODEL_PATH=models/custom_model.pt MAX_WORKERS=8 BATCH_SIZE=8 python fire_detection_service.py
 ```
 
-| Input | Feature Maps | 
-| :-: | :-: |
-| ![](results/004dec94c5de631f.jpg) | ![](results/stage23_C3_features.png) |
+## Testing
 
-## 🔗 Reference
-I borrowed and modified [YOLOv5-Custom-Training.ipynb](https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data) script for training YOLOv5 model on the fire dataset. For more information on training YOLOv5, please refer to its homepage.
-* https://github.com/robmarkcole/fire-detection-from-images
-* https://github.com/ultralytics/yolov5
-* https://github.com/AlexeyAB/darknet
+A test script (`test.py`) is provided to verify the service is working correctly:
+
+```bash
+python test.py --image test_image.jpg
+```
+
+For more testing options:
+
+```bash
+python test.py --help
+```
+
+## Architecture
+
+The service uses a queue-based architecture with multiple worker threads:
+
+1. **Request Handling**: The Flask server receives image requests and places them in a queue
+2. **Batch Processing**: Worker threads process images in batches for efficient inference
+3. **Response Management**: Results are stored in a thread-safe dictionary and returned to clients
+4. **Cleanup Process**: A background thread removes old responses to prevent memory leaks
+
+## Performance Considerations
+
+- **Batch Size**: Larger batch sizes improve throughput but increase latency
+- **Worker Threads**: More workers can handle more concurrent requests but may overload the CPU
+- **Queue Size**: Larger queues allow more pending requests but use more memory
+- **GPU Acceleration**: Significantly improves performance for large batches
+- **Timeout**: Adjust the timeout (currently 10 seconds) based on expected processing time
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Service Overloaded**: If you receive a 503 error, try increasing the queue size or reducing the request rate
+2. **Request Timeout**: If requests time out, try increasing the worker threads or reducing the batch size
+3. **Memory Issues**: If the service uses too much memory, reduce the queue size or batch size
+4. **GPU Out of Memory**: Try reducing the batch size if using GPU acceleration
+
+### Logs
+
+The service logs information to help with debugging:
+
+- Check the log level (configurable via `LOG_LEVEL`)
+- Look for error messages in the logs
+- The health endpoint provides useful operational metrics
+
+## Deployment
+
+For production deployment:
+
+1. Use a proper WSGI server like Gunicorn instead of Flask's development server
+2. Consider containerizing the application with Docker
+3. Set up monitoring and alerts
+4. Implement appropriate security measures
+5. Configure load balancing for high availability
+
+---
+
+This documentation provides an overview of the Fire Detection Microservice. For further assistance or to report issues, please contact the development team.
