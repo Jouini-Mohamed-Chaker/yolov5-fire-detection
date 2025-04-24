@@ -8,7 +8,7 @@ from pathlib import Path
 
 # Configuration
 MODEL_PATH = Path(__file__).parent / "models/yolov5s_best.pt"
-CONFIDENCE_THRESHOLD = 0.5
+CONFIDENCE_THRESHOLD = 0.4
 
 # Load YOLOv5 model
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -59,12 +59,16 @@ async def detect_frame(file: UploadFile = File(...)):
         if conf < CONFIDENCE_THRESHOLD:
             continue
         x1, y1, x2, y2 = map(int, [row.xmin, row.ymin, row.xmax, row.ymax])
+        # Convert class ID to string label
+        class_id = int(row['class'])  # class ID is usually stored under 'class'
+        label = model.names[class_id]  # convert to label using model.names
+
         detections.append(Detection(
-            label=row.name,
+            label=label,
             confidence=conf,
             bounding_box=BoundingBox(
                 x=float(x1), y=float(y1),
-                width=float(x2-x1), height=float(y2-y1)
+                width=float(x2 - x1), height=float(y2 - y1)
             )
         ))
 
